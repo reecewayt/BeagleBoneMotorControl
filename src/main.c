@@ -2,26 +2,43 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "../include/BeagleBoneMaster.h"
+#include "../include/MotorControllerLib.h"
 
+//number of steps for stepper motor
+#define NUMSTEPS 200
+#define DELAY_TIME 0.5           //Count time in seconds
 
+#define EXEC_ASM_INSTRUCTION(instr) asm (instr);
 
 int main(void) {
-    uint32_t ctrl;
 
+    //Initialize BeagleBone Peripheral Modules
+    gpio1_init();
+    timer5_init();
+    IRQ_init();
     I2C_init();
+    //Initialize adafruit FeatherWing - motor controller
+    motor_controller_init();
 
-    ctrl = HWREG(I2C1_BASE + I2C_CON);
+    //Enable IRQ interrupts in CPSR bit 7
+    clear_interrupt_mask_bit();
 
-    I2C_send_data(0x64); //test address
+    while(1){
+        //Wait for interrupt, before starting program
+        EXEC_ASM_INSTRUCTION("WFI");
 
-    //poll bit 1 of the control reg, to see if stop condition detected
-    while(ctrl & 0x2){
-        //This loop should wait for stop condition
+        int step = 0;
+        for(int i = 0; i < NUMSTEPS; i++){
+            step = (step % 4) + 1; //send data
+            full_step_motor(step);
+            timer5_start(DELAY_TIME);
+            EXEC_ASM_INSTRUCTION("WFI");
+        }
+
+        gpio1_enable_irq(); //re-enable irq once step sequence is complete
+
     }
-
-    //stop condition detected and transmission complete
-    printf("Test transmission successful\n");
-
+    
 
     return 0;
 }

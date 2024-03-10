@@ -71,10 +71,12 @@ void timer5_init(void) {
     HWREG(TIMER5_BASE + TIMER5_OCP_CFG) = RESET_TIMER;
     HWREG(TIMER5_BASE + TIMER5_IRQENABLE) = IRQ_SET_TIMER5_ENB;
     //Converts count time in second to appropriate register value, see Sitara Manual
-    uint32_t count_value= calculateTLDR(TIMER5_COUNT_TIME); 
-     //Note TLDR is equal to TCRR 
+    //FIXME: see start timer func, might need to remove some steps here since we 
+    //aren't using autoreload funcitonality
+    uint32_t count_value= calculateTLDR(TIMER5_DELAY_TIME); 
+    
+    //Note TLDR is equal to TCRR 
     HWREG(TIMER5_BASE + TIMER5_TLDR) = count_value;
-    //FIXME: TCRR will need to be initialized before each use, not using auto-reload
     HWREG(TIMER5_BASE + TIMER5_TCRR) = count_value;
 
 }
@@ -91,10 +93,11 @@ void irq_director(void) {
     uint32_t temp = HWREG(GPIO1_BASE + GPIO1_IRQSTATUS);
     //checks if IRQ signal is from GPIO1_3 switch button
     if(temp & GPIO1_3_SIGLINE){
-        //IRQ is from buttonm, clear IRQ and handle appropriately
-        HWREG(GPIO1_BASE + GPIO1_IRQSTATUS) = temp; //TODO: it might be best to clear after IRQ is services
-        //TODO: disable IRQs and Send Step Sequence
+        //IRQ is from button, clear IRQ and handle appropriately
+        HWREG(GPIO1_BASE + GPIO1_IRQSTATUS) = temp; //clears bit 3
+        gpio1_disable_irq(); //disable while step sequenc is being services
     }
+
     //get address of timer5 irq signal
     temp = HWREG(TIMER5_BASE + TIMER5_IRQSTATUS);
     if(temp & TIMER5_OVFL_CHECK) {
@@ -102,7 +105,6 @@ void irq_director(void) {
         HWREG(TIMER5_BASE + TIMER5_IRQSTATUS) = temp; //writing back clears flag
         temp = HWREG(TIMER5_BASE + TIMER5_TLDR); //timer load value
         HWREG(TIMER5_BASE + TIMER5_TCRR) = temp; //reload timer count register
-        //TODO: send next data step
     }
     else{
         printf("System detected IRQ signal, but source not found...\n");
@@ -125,13 +127,14 @@ void I2C_init(void) {
     HWREG(I2C1_BASE + I2C_SCLH) = calculateSCLH(I2C_FS_MD_FREQUENCE, I2C_ICLK);
 }
 
-//FIXME:You will need to update the way you send data later. 
-void I2C_send_data(uint8_t data) {
-    //Write Test Address to Slave Address Reg
-    HWREG(I2C1_BASE + I2C_SA) = data;
-    HWREG(I2C1_BASE + I2C_CNT) = 0x01;
 
-    //Start data transfer
-    HWREG(I2C1_BASE + I2C_CON) = I2C_START_TRANSFER;
+void clear_interrupt_mask_bit(void){
+    uint32_t cpsr; 
+
+     asm("MRS %0, CPSR" : "=r" (cpsr));
+
+    cpsr &= ~(1 << 7);
+
+    asm("MSR CPSR_c, %0" :: "r" (cpsr));
+
 }
-

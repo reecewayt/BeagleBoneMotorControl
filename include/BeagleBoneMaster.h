@@ -60,7 +60,7 @@
 #define TIMER5_OVFL_CHECK 0x2           //bit 1 will be set if overflow happens     
 #define RESET_TIMER 0x1
 #define START_TIMER 0x1                 //value to perform one shot timer, TCRR will need to be reset
-#define TIMER5_COUNT_TIME 0.5           //Count time in seconds
+#define TIMER5_DELAY_TIME 0.5
 //-------------------------------------------------------------------------------------------------------
 
 
@@ -87,18 +87,20 @@
 #define I2C_CON 0xA4                    // Config Register
 #define I2C_SA 0xAC                     // Slave Address
 #define I2C_CNT 0x98                    // Count Reg
+#define I2C_IRQSTATUS_RAW 0x24          // Used to read core status info of I2C bus
 //I2C Commands---
 #define I2C_SYS_CLK 24                  // 24 MHz is the clock frequency for this module
 #define I2C_ICLK 12                     // We are operating in F/S Mode, 12 MHz is recommended (see Sitara Manual)
 #define I2C_FS_MD_FREQUENCE 400         // 400 KHz is the standard for F/S mode for the SCL line
-#define I2C_START_TRANSFER 0x8603     
-#define I2C_DISABLE_RESET 0x8600        //You need this to take module out of reset upon initialization      
+#define I2C_START_TRANSFER 0x8603       // Start condition and pending stop, see sitara manual
+#define I2C_DISABLE_RESET 0x8600        //You need this to take module out of reset upon initialization 
+#define I2C_BUS_BSY_CHECK 0x1000        //Bus is busy if bit 12 is set     
 
 
 //Globals and TypeDefs----------------------------------------------------------------------------------
-extern const float desiredTimerDelay;
+extern const float desiredTimerDelay; //FIXME: Unused variable
 
-// TODO add later
+// TODO unused typedef 
 typedef struct{
     volatile uint32_t control;
     volatile uint8_t data_rec;
@@ -123,5 +125,6 @@ void timer5_start(void);
 void I2C_init(void);
 void I2C_send_data(uint8_t data);
 
+void clear_interrupt_mask_bit(void);
 
 #endif 
