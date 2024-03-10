@@ -6,14 +6,11 @@
 /BeagleBoneMotorControl
 |-- /src
     |-- main.c                   # Contains the main function.
-    |-- timer.c                  # Contains timer initialization and interrupts.
-    |-- i2c.c                    # Contains I2C configurations and data transmission functions.
-    |-- motor_controller.c       # Contains motor control functions.
+    |-- BeagleBoneMasterLib.c    # Contains configs and commands for I2C Master
+    |-- MotorControllerLib.c     # Contains motor configs and control functions.
 |-- /include
-    |-- main.h                   # Main header file, might not be necessary depending on your main.c structure.
-    |-- timer.h                  # Header for timer-related definitions and function declarations.
-    |-- i2c.h                    # Header for I2C-related definitions and function declarations.
-    |-- motor_controller.h       # Header for motor control definitions and function declarations.
+    |-- BeagleBoneMasterLib.h    # Header for Master macros, defintions, and function declarations
+    |-- MotorControllerLib.h     # Header for motor control definitions and function declarations
 |-- /docs
     |-- ...TODO                  # Documentation files, datasheets, etc.
 |-- Makefile                     # Or any other build script you use.
