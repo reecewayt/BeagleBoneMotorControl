@@ -2,129 +2,180 @@
  * Created on: March 3rd, 2024
  * Author: Reece Wayt
  *
- * This module is designed for ECE 372 Design Project #2 to
- * initialize the I2C1 Controller. This implementation is done on
- * the beagle bone black with an AMX335x Sitara Processor
- * 
-*/
+ * This module is designed for ECE 372 Design Project #2 to initialize the I2C1 Controller. 
+ * This implementation is done on the beagle bone black with AMX335x Sitara Processor.
+ *
+ */
 #ifndef BEAGLEBONEMASTER_H_
 #define BEAGLEBONEMASTER_H_
 
 //macro to access hardware registers----------------------------------------------------------------------
 #define HWREG(x) (*((volatile unsigned int *)(x)))
 
+//extern defs & Globals
+extern volatile int timerFlag;
+extern volatile int push_button;
 
-//GPIO1 Registers & Commands------------------------------------------------------------------------------
-#define CM_PER_GPIO1_CLKCTRL 0x44E000AC  //GPIO1 Clock Module
-#define GPIO1_BASE 0x4804C000            //Base of GPIO1
-//Offsets---
-#define GPIO1_FALLDETECT 0x14C          //Interrupt to detect falling edge of mechanical switch
-#define GPIO1_DEBOUNCE_ENBL 0x150       //GPIO register to enable debounce of mechanical switch
-#define GPIO1_DEBOUNCETIME 0x154        //time of debounce
-#define GPIO1_IRQSTATUS 0x30             //Can read or write to detect and clear IRQ signal
-//Commands---
-#define TURN_ON_CLK_AND_DB 0x00040002   //Value to turn on clock and turn on debounce clock (optional)
-#define FALL_EDGE_DETECT_IRQ 0x8        //Value to set IRQ interrupt of GPIO1_3
-#define DEBOUNCE_ENABLE 0x8             //value to turn on debounce capabilities on switch
-#define DEBOUNCE_TIME 0xA0              //set time to 5 ms
-#define GPIO1_3_SIGLINE 0x8             //this signal line is bit 3, hex 0x8
-//-------------------------------------------------------------------------------------------------------
+//typedefs
 
-//Interrupt Registers & Commands-------------------------------------------------------------------------
-#define INTC_BASE 0x48200000                 //Interrupt Controller Base Address 
-//Offsets---  
-#define INTC_SYSCONFIG 0x10            
-#define INTC_MIR_CLEAR2 0xC8            
-#define INTC_MIR_CLEAR3 0xE8        
-//Commands---
-#define RESET_INTC 0x2                   //Reset interrupt controller, good practice
-#define UNMASK_TIMER5_INTR 0x20000000    //Clears intc #93 for timer5 interrupts
-#define UNMASK_GPIO1_INTR 0x04           //Clears intc #98 for gpio1 interrupts
-//-------------------------------------------------------------------------------------------------------
+typedef struct { //Clock Module Peripherals
+    uint32_t const CM_PER_BASE;  // Clock module base address
+    uint32_t const CM_PER_GPIO1_CLKCTRL; //Location of GPIO1 clock
+    uint32_t const CM_PER_I2C1_CLKCTRL; //Location of I2C1 Module
+} clk_mods_t; 
 
-//Timer5 Registers & Commands----------------------------------------------------------------------------
-#define TIMER5_BASE 0x48046000        
-#define CM_PER_TIMER5_CLKCTRL 0x44E000EC       //Timer 5 Clock Peripheral Register
-#define CLKSEL_TIMER5_CLK 0x44E00518           //Clock select module
-//Offsets---  
-#define TIMER5_OCP_CFG 0x10                    //OCP Config Register
-#define TIMER5_IRQSTATUS 0x28                  //For checking IRQ signals
-#define TIMER5_IRQENABLE 0x2C                  //IRQ Enable 
-#define TIMER5_TLDR 0x40                       //Timer Load Register  
-#define TIMER5_TCRR 0x3C                       //Timer Count Register  
-#define TIMER5_TCLR 0x38                       //Timer control register        
-//Commands---
-#define TURN_ON_CLK 0x2
-#define SELECT_32KHz_CLK 0x2            //selects 32.768 KHz timer clock     
-#define IRQ_SET_TIMER5_ENB 0x2          //enable IRQ signals for timer5    
-#define TIMER5_OVFL_CHECK 0x2           //bit 1 will be set if overflow happens     
-#define RESET_TIMER 0x1
-#define START_TIMER 0x1                 //value to perform one shot timer, TCRR will need to be reset
-#define TIMER5_DELAY_TIME 0.5
-//-------------------------------------------------------------------------------------------------------
+//GPIO configuration registers and associated commands
+typedef struct {
+    uint32_t const CM_PER_CLKCTRL;  // Clock module control register
+    uint32_t const BASE;            // Base address of GPIO1
+    uint32_t const FALLDETECT;      // Falling edge detection register
+    uint32_t const DEBOUNCE_ENBL;   // Debounce enable register
+    uint32_t const DEBOUNCETIME;    // Debounce time register
+    uint32_t const IRQSTATUS;       // IRQ status register
+    uint32_t const IRQSTATUS_SET_0; // IRQ status set register
+    uint32_t const SYSCONFIG;       // System configuration register
+    // Commands
+    uint32_t const TURN_ON_CLK_AND_DB;     //turn on clock and turn on debounce clock
+    uint32_t const DBNC_SET_TIME;          //set time for debounce
+    uint32_t const GPIO1_3_SIGNAL;         //this signal line for target GPIO1 bit
+} GPIOConfigs_t;
 
+extern const GPIOConfigs_t GPIO1;
 
-//P9 BeagleBone Header Registers & Commands----------------------------------------------------------------------------
-#define CTRL_MODULES_BASE 0x44E10000 
-//Offsets---  
-#define CONF_SPI0_D1 0x958              // Pad control reg to I2C1_SDA
-#define CONF_SPI0_CS0 0x95C             // Pad control reg to I2C1_SCL       
-//Commands---
-#define MODE2_SELECT 0x32               //Mode2 MUXES select I2C1 SDA SCL on P9 Pins, see BeagleBone Manual       
-//-------------------------------------------------------------------------------------------------------
+//Interrupt controller and associated commands
+typedef struct {
+    uint32_t const BASE;          // Interrupt Controller Base Address
+    uint32_t const SYSCONFIG;     // Offset for the System Configuration Register
+    uint32_t const CONTROL;        // Offset to control register for new irq generation
+    uint32_t const MIR_CLEAR2;    // Offset to clear the interrupt mask for set 2
+    uint32_t const MIR_CLEAR3;    // Offset to clear the interrupt mask for set 3
+    // Commands
+    uint32_t const RESET;         // Command to reset the interrupt controller
+    uint32_t const UNMASK_TIMER5; // Command to unmask Timer 5 interrupts
+    uint32_t const UNMASK_GPIO1;  // Command to unmask GPIO1 interrupts
+    uint32_t const NEW_IRQ;       // Command to allow new irq signals
+} InterruptConfigs_t;
 
-//I2C1 Registers Set & Commands---------------------------------------------------------------------------
+extern const InterruptConfigs_t INTCConfig;
 
-//Clock Module Base & Offsets---
-#define CM_PER_BASE 0x44E00000          // Base address of peripheral clock modules
-#define CM_PER_I2C_CLKCTRL 0x48         // Reg for I2C1 clock
-//I2C Register Set---
-#define I2C1_BASE 0x4802A000            // Base address of I2C1 Module
-#define I2C_PSC 0xB0                    // Prescalar value
-#define I2C_SCLL 0xB4                   // SCL line low time
-#define I2C_SCLH 0xB8                   // SCL line high time
-#define I2C_DATA 0x9C                   // Data Buffer Register
-#define I2C_CON 0xA4                    // Config Register
-#define I2C_SA 0xAC                     // Slave Address
-#define I2C_CNT 0x98                    // Count Reg
-#define I2C_IRQSTATUS_RAW 0x24          // Used to read core status info of I2C bus
-//I2C Commands---
-#define I2C_SYS_CLK 24                  // 24 MHz is the clock frequency for this module
-#define I2C_ICLK 12                     // We are operating in F/S Mode, 12 MHz is recommended (see Sitara Manual)
-#define I2C_FS_MD_FREQUENCE 400         // 400 KHz is the standard for F/S mode for the SCL line
-#define I2C_START_TRANSFER 0x8603       // Start condition and pending stop, see sitara manual
-#define I2C_DISABLE_RESET 0x8600        //You need this to take module out of reset upon initialization 
-#define I2C_BUS_BSY_CHECK 0x1000        //Bus is busy if bit 12 is set     
+//Beaglebone P9 Pad Registers and Mode Mux
+typedef struct {
+    uint32_t const BASE;              // Control Module Base Address
+    uint32_t const CONF_SPI0_D1;      // Pad control register for I2C1_SDA
+    uint32_t const CONF_SPI0_CS0;     // Pad control register for I2C1_SCL
+    uint32_t const MODE2_SELECT;      // Mode2 select command for I2C1 pins
+} P9HeaderConfig_t;
 
+extern const P9HeaderConfig_t P9HeaderConfig;
 
-//Globals and TypeDefs----------------------------------------------------------------------------------
-extern const float desiredTimerDelay; //FIXME: Unused variable
+//I2C1 Registers Set & Commands
+typedef struct {
+    uint32_t const BASE;            // Base address of I2C1 Module
+    uint32_t const SYSC;            // Soft reset register offset
+    uint32_t const PSC;             // Prescaler value register offset
+    uint32_t const SCLL;            // SCL line low time register offset
+    uint32_t const SCLH;            // SCL line high time register offset
+    uint32_t const BUF;             // Buffer config register offset
+    uint32_t const DATA;            // Data buffer register offset
+    uint32_t const CON;             // Config register offset
+    uint32_t const SA;              // Slave address register offset
+    uint32_t const CNT;             // Count register offset
+    uint32_t const IRQSTATUS_RAW;   // IRQ status register offset
+    // I2C Commands
+    uint32_t const SYS_CLK;         // Clock frequency for this module
+    uint32_t const ICLK;            // I2C internal clock frequency
+    uint32_t const FS_MD_FREQUENCE; // F/S mode frequency for the SCL line
+    uint32_t const SCL_LOW_TIME;     //Low and High time for 400 KHz frequency
+    uint32_t const SCL_HIGH_TIME;
+    uint32_t const PSC_VALUE;       // Value to load into prescalar register
+    uint32_t const START_TRANSFER;  // Start transfer command
+    uint32_t const ENABLE_MODULE;   // Enable module command
+    uint32_t const IRQ_RESET;       // Clear all IRQ signals command
+} I2CConfig_t;
 
-// TODO unused typedef 
-typedef struct{
-    volatile uint32_t control;
-    volatile uint8_t data_rec;
-    volatile uint8_t data_send;
+extern const I2CConfig_t I2C1;
 
-} I2C_Reg_t;
+//Function Prototypes
 
-//Function Prototypes----------------------------------------------------------------------------------
+/*
+ * Stack setup routine using inline assembly
+ */
+void setup_stacks(int stack_size);
 
-uint32_t calculateTLDR(float desiredTimeSec);
-
-uint32_t calculatePSC(int sys_clk_mhz, int iclk_mhz);
-
-uint32_t calculateSCLL(int frequency_khz, int iclk_mhz);
-
-uint32_t calculateSCLH(int frequency_khz, int iclk_mhz);
-
-void gpio1_init(void);
-void IRQ_init(void);
-void timer5_init(void);
-void timer5_start(void);
+/*
+ * Initializes i2c bus with a 400 KHz internal clock:
+ * 
+ * Beagle Bone -> Bus Master
+ * PCA Controller-> Slave 
+ */
 void I2C_init(void);
-void I2C_send_data(uint8_t data);
 
+/*
+ * This function performs a soft reset of the I2C1 Module
+ */
+void I2C_restart(void);
+
+/*
+ * This function enables the clock and debounce for GPIO1, configures GPIO1
+ * to detect falling edge interrupts, and sets the debounce time.
+*/
+void gpio1_init(void);
+
+/*
+ * gpio1 enbale and disable functions perform a quick operation to prevent further interrupts 
+ * from push button switch during the stepper motor step sequence
+ */
+void gpio1_enable_irq(void);
+void gpio1_disable_irq(void);
+
+/*
+ * Initializes the irq signals need for this program, it unmasks the signals for 
+ * timer5 and gpio1 modules
+ */
+void IRQ_init(void);
+
+/*
+ * IRQ signal handler, check interrupt source between gpio1 and timer5. Can be updated to
+ * include additional interrupt signals.You must update the startup_ARMCA8 file (name is dependent on compiler used) 
+ * to check these IRQ signals. 
+ * Specifically, the irq vector table will need to be updated to include this function as shown below. 
+ * -> __isr_vector:
+        LDR   pc, [pc,#24]       @ 0x00 Reset
+        LDR   pc, [pc,#-8]       @ 0x04 Undefined Instruction
+        LDR   pc, [pc,#24]       @ 0x08 Supervisor Call
+        LDR   pc, [pc,#-8]       @ 0x0C Prefetch Abort
+        LDR   pc, [pc,#-8]       @ 0x10 Data Abort
+        LDR   pc, [pc,#-8]       @ 0x14 Not used
+        LDR   pc, =irq_director	 @ 0x18 IRQ interrupt
+        LDR   pc, [pc,#-8]       @ 0x1C FIQ interrupt
+ * ->
+ */
+void irq_director(void);
+
+/**
+ * Initializes Timer5 for one-shot operations. Configures Timer5 to operate with a 32KHz internal clock. The timer is set up
+ * to generate an interrupt on overflow, which is used as a signal to delay each motor command. 
+ */
+void timer5_init(void);
+
+/*
+ * Starts Timer5 counting for a single operation - one shot interrupt timer. Each start loads the 
+ * desired clock time using the below formula. In this program a long and short timer is used for 
+ * sending motor step, and I2C commands. 
+ * 
+ * The Timer Load Register (TCRR) is calculated based on the desired time delay
+ * using the following formula from the Sitara manual (page 4447):
+ *
+ * TLDR = 0xFFFFFFFF - ((DesiredTime * TimerClockFrequency) / ClockDivider) + 1
+ *
+ * Where:
+ * - TimerClockFrequency = 32,768 Hz (32KHz internal clock)
+ * - ClockDivider is set to 1 by default
+ * - DesiredTime is the time in seconds after which the timer interrupt should occur
+ */
+void timer5_start(void);
+
+//unmasks CPSR IRQ Bit
 void clear_interrupt_mask_bit(void);
 
-#endif 
+#endif
