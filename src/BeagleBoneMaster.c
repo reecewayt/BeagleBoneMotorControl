@@ -76,6 +76,7 @@ void setup_stacks(int stack_size){
     volatile unsigned int* svc_stack_top = svc_stack + stack_size;
     volatile unsigned int* irq_stack_top = irq_stack + stack_size;
 
+    //setup program stacks for SVC and IRQ modes
     __asm(
           "MOV R13, %0\n\t"
           "CPS #0x12\n\t"
