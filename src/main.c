@@ -1,3 +1,16 @@
+/*
+ * File: main.c
+ * Project: Stepper Motor Control via I2C
+ * Description: This file contains the main program flow for controlling a stepper motor using the PCA9685
+ *              Motor Controller over I2C. The motor executes 200 steps in a counter-clockwise direction
+ *              when a push button is pressed. It includes initializations for the GPIO, I2C, and motor
+ *              controller, as well as the main control loop which awaits a button press to start the
+ *              motor sequence. The program utilizes interrupt-driven button press detection and manages
+ *              precise motor stepping timing.
+ * Author: Reece Wayt
+ * Date: April 20, 2024
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

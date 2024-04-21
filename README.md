@@ -20,7 +20,7 @@
 3. Stepping Algorithm: Executes a full step sequence for the stepper motor, managed through control signals derived from the PCA9685 outputs.
 4. **No Use of PWM:** For this project, PWM was not utilized; instead, control was achieved through direct full-on and full-off states managed by the PCA9685.
 
-**Note**: Future implementions should use a timer based IRQ to send signals, and other IRQ generated events - this implementation utilizes wait loops to time signals based on the PCA9685 timing requirements, and IRQs are not used. 
+**Note**: Future implementations should use a timer based IRQ to send signals, and other IRQ generated events - this implementation utilizes wait loops to time signals based on the PCA9685 timing requirements. A simple IRQ via a mechanical switch connected is used, but i2c based IRQ signals are not implemented. 
 
 ### Project directory
 ```

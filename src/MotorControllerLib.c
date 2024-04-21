@@ -79,7 +79,6 @@ void motor_init(void){
     // Disable all PWM outputs
     pca_write_byte(PCA_ALL_LED_OFF_H, 0x00);
     delay(5000);
-    //TODO: make sure to update header files at school
     pca_write_byte(PCA_LED2_ON_H, 0x10); //LED2 is at address 0x0F
     delay(5000);
     pca_write_byte(PCA_LED7_ON_H, 0x10); //LED7 is at address 0x23
@@ -94,7 +93,8 @@ void pca_write_byte(volatile uint8_t ctrl_reg, volatile uint8_t value){
     HWREG(I2C1_BASE + I2C_DATA) = ctrl_reg;
     HWREG(I2C1_BASE + I2C_DATA) = value;
 }
-//function to set the state of a motor pin
+
+//function to set the state of a motor pin, note that OFF PWM signal takes precedent over ON PWM signal
 void pca_set_motor_pin_state(uint8_t on_register, uint8_t off_register, _Bool state) {
     if (state) {
         pca_write_byte(off_register, PWM_OUTPUT_DISABLE); // Fully disable OFF PWM output first
@@ -144,5 +144,3 @@ void pca_reset(void){
     HWREG(I2C1_BASE + I2C_DATA) = 0x06;
 }
 
-//future implementaton short timer = 0.005 s -> Timer count = 0xFFFF_FF5D
-//long timer = 0.04 s -> timer count = 0xFFFF_FAE2
