@@ -149,6 +149,7 @@ void I2C_init(void) {
     HWREG(P9HeaderConfig.BASE + P9HeaderConfig.CONF_SPI0_D1) = P9HeaderConfig.MODE2_SELECT;
     
     // Enable clock for I2C1 module and perform a soft reset.
+    HWREG(clocks.CM_PER_BASE + clocks.CM_PER_I2C1) = 0x2;
     HWREG(I2C1.BASE + I2C1.SYSC) = I2C1.ENABLE_MODULE;
     
     // Clear FIFO buffer and configure I2C speed.
