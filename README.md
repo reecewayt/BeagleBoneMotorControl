@@ -38,12 +38,12 @@
 
 ### Truth Table for Clockwise Rotation of Stepper Motor:
 
-Step Sequence (binary): AIN1, AIN2, BIN1, BIN2
-H-Bridge Inputs:
-AIN1 and AIN2 are connected to PC9685 Pin Signals LED4 and LED3 respectively
-BIN1 and BIN2 are connected to PC9685 Pin Signals LED5 and LED6 respectively
-LED2 and LED7 both need to turned full on during operations and are implemented 
-during controller initialization
+Step Sequence (binary): AIN1, AIN2, BIN1, BIN2  
+H-Bridge Inputs:  
+AIN1 and AIN2 are connected to PC9685 Pin Signals LED4 and LED3 respectively  
+BIN1 and BIN2 are connected to PC9685 Pin Signals LED5 and LED6 respectively  
+LED2 and LED7 both need to turned full on during operations and are implemented   
+during controller initialization  
 
 
 H = High (ON) signal
